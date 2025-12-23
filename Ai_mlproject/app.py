@@ -5,6 +5,7 @@ import os
 
 import plotly.graph_objects as go
 import plotly.express as px
+import base64
 from collections import Counter
 
 # =========================
@@ -22,34 +23,35 @@ st.set_page_config(
 st.markdown("""
 <style>
 :root {
-  --bg1: #f6f8ff;
-  --bg2: #f0fff9;
-  --accent1: #000000; /* purple */
-  --accent2: #8C8C8C; /* blue */
-  --accent3: #2a9d8f; /* teal */
+  --bg1: #f3f4f6; /* light gray */
+  --bg2: #e5e7eb; /* slightly darker light gray */
+  --accent1: #ff6b35; /* warm orange/red from logo */
+  --accent2: #ffb703; /* golden yellow accent */
+  --accent3: #3fb1ff; /* blue accent (magnifier) */
 }
 body {
     background: linear-gradient(135deg, var(--bg1), var(--bg2));
-}
+} 
 .card {
-    background: linear-gradient(180deg, #ffffffcc, #ffffff);
+    background: linear-gradient(180deg, rgba(255,107,53,0.10), rgba(255,183,3,0.06));
+    color: #0f172a; /* dark text for contrast */
     padding: 22px;
     border-radius: 16px;
-    border: 1px solid rgba(37,117,252,0.08);
-    box-shadow: 0 8px 24px rgba(37,117,252,0.06);
-    margin-bottom: 20px;    
+    border: 1px solid rgba(255,107,53,0.12);
+    box-shadow: 0 8px 28px rgba(255,107,53,0.08);
+    margin-bottom: 20px;
     transition: transform .12s ease, box-shadow .12s ease;
 }
-.card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(37,117,252,0.08); }
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 48px rgba(255,107,53,0.12); }
 .metric-title {
     font-size: 14px;
-    color: #64748b;
+    color: #374151; /* darker gray for light warm card */
     margin-bottom: 8px;
 }
 .metric-value {
     font-size: 28px;
     font-weight: 700;
-    color: var(--accent3);
+    color: var(--accent1);
 }
 .section-title {
     font-size: 22px;
@@ -59,6 +61,8 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
+.stMarkdown h2, .stMarkdown h3 { color: var(--accent1); }
+.subtitle { color: rgba(85, 43, 22, 0.8); }
 .stMarkdown h2, .stMarkdown h3 { color: var(--accent1); }
 .metric-positive .metric-value { color: #2a9d8f; }
 .metric-neutral .metric-value { color: #f59e0b; }
@@ -71,10 +75,11 @@ body {
   display:block;
   padding: 16px;
   border-radius: 12px;
-  background: linear-gradient(90deg,#ffffff,#f8fafc);
-  border: 1px solid rgba(37,117,252,0.06);
-  box-shadow: 0 6px 20px rgba(106,17,203,0.03);
+  background: linear-gradient(90deg, rgba(255,107,53,0.06), rgba(255,183,3,0.04));
+  border: 1px solid rgba(255,107,53,0.12);
+  box-shadow: 0 6px 20px rgba(255,107,53,0.06);
   margin-bottom: 18px;
+  color: #0f172a;
 }
 
 .navbar {
@@ -83,14 +88,14 @@ body {
   justify-content:space-between;
   padding:14px 18px;
   border-radius:12px;
-  background: linear-gradient(90deg, rgba(106,17,203,0.06), rgba(37,117,252,0.04));
-  border: 1px solid rgba(37,117,252,0.06);
-  box-shadow: 0 8px 24px rgba(37,117,252,0.04);
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  border: 1px solid rgba(255,107,53,0.12);
+  box-shadow: 0 8px 24px rgba(255,107,53,0.08);
   margin-bottom: 18px;
 }
 
-.navbar h2 { margin:0; font-size:20px; }
-.navbar .subtitle { color:#6b7280; font-size:12px; }
+.navbar h2 { margin:0; font-size:20px; color:#ffffff; }
+.navbar .subtitle { color: rgba(255,255,255,0.9); font-size:12px; }
 
 </style>
 """, unsafe_allow_html=True)
@@ -98,19 +103,55 @@ body {
 # =========================
 # NAVBAR
 # =========================
+# Load logo image (if available) and prepare data URL for inline use
+logo_data_url = None
+try:
+    logo_path = os.path.join(os.path.dirname(__file__), "assets", "logoo.png")
+    with open(logo_path, "rb") as f:
+        logo_b64 = base64.b64encode(f.read()).decode()
+    logo_data_url = f"data:image/png;base64,{logo_b64}"
+except Exception:
+    logo_data_url = None
+
 nav_bar = st.container()
 nav_cols = nav_bar.columns([3,1])
 with nav_cols[0]:
-    st.markdown("""
+    logo_html = f'<img src="{logo_data_url}" class="nav-logo" alt="ReviewSense logo" loading="lazy">' if logo_data_url else '<div style="font-size:28px">📊</div>'
+    st.markdown(f"""
     <div class="navbar">
         <div style="display:flex;align-items:center;gap:12px">
-            <h2>📊 ReviewSense</h2>
-            <div class="subtitle">AI Review & Reputation Dashboard</div>
+            {logo_html}
+            <div>
+                <h2>ReviewSense</h2>
+                <div class="subtitle">AI Review & Reputation Dashboard</div>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 # placeholder for the product filter selectbox (will be filled after data is loaded)
 filter_placeholder = nav_cols[1].empty()
+
+# Add faint background overlay using the same image (slightly transparent & blurred)
+if logo_data_url:
+    st.markdown(f"""
+    <style> 
+    body::before {{
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("{logo_data_url}");
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 60% auto; /* logo occupies central area */
+        background-attachment: fixed;
+        opacity: 0.15; /* semi-transparent so content remains readable */
+        z-index: -1;
+        pointer-events: none;
+        filter: none;
+    }}
+    .nav-logo {{ height:48px; max-width:160px; object-fit:contain; border-radius:0; box-shadow:none; background:transparent; }}
+    </style>
+    """, unsafe_allow_html=True)
 
 # =========================
 # LOAD MODEL
@@ -223,7 +264,7 @@ with left:
         names="sentiment",
         values="count",
         color="sentiment",
-        color_discrete_map={"positive":"#eeff00","neutral":"#48ff00","negative":"#00ff9d"},
+        color_discrete_map={"positive":"#ff9100","neutral":"#0c1b72","negative":"#f8cb4d"},
         hole=0.4,
         labels={"count":"Jumlah", "sentiment":"Sentimen"}
     )
